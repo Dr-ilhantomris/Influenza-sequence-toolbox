@@ -1,0 +1,3 @@
+# Add file extensions here under to ignore tracking with git and pushing to github
+*.fasta
+*.csv
