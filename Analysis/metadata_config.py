@@ -82,5 +82,5 @@ def parse_header_metadata(record, chosen_columns):
         "Sequence": seq_str  # Handles mapping the full string on demand
     }
 
-# Return only the cell columns specified by the global checklist selection layout
+    # Return only the cell columns specified by the global checklist selection layout
     return [data_source[col] for col in chosen_columns]
