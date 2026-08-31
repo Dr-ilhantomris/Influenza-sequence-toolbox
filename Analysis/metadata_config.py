@@ -49,24 +49,56 @@ def prompt_column_selection():
     # Return the exact array of label strings chose by the user
     return [COLUMNS_MAP[k]["label"] for k in chosen_keys]
 
-def parse_header_metadata(record, chosen_columns):
+def prompt_qc_thresholds():
+    # Collects quality filtering constraints from the user text menu
+    print("\n" + "-"*50)
+    print("🧪 QUALITY CONTROL FILTER CONFIGURATION 🧪")
+    print("-"*50)
+    print("Set your constraints. Press Enter on any option to skip/ignore it.")
+    print("-"*50)
+
+    # Minimum length filter
+    raw_min = input("Minimum sequence length in base pairs (e.g., 1000): ").strip()
+    min_bp = int(raw_min) if raw_min.isdigit() else 0
+
+    # Maximum length filter
+    raw_max = input("Maximum sequence length in base pairs (e.g., 2000): ").strip()
+    max_bp = int(raw_max) if raw_max.isdigit() else float('inf')
+
+    # Ambiguity filter
+    raw_n_pct = input("Maximum allowed ambiguous 'N' characters in  ")
+    max_n_pct = float(raw_n_pct) / 100.0 if raw_n_pct else float('inf') 
+
+    return {"max_n_pct": max_n_pct, "min_bp": min_bp, "max_bp": max_bp}
+    
+def parse_header_metadata(record, chosen_columns, qc_filters=None):
+
     # General parsing function that breaks a record header apart and maps it dynamically to your requested column settings
     header_parts = record.id.split('|')
-
-    # Safety pad to guard short fields from throwing IndexError crashes
     while len(header_parts) < 5:
         header_parts.append("")
 
     # Real-time computation of raw molecular attributes
     seq_str = str(record.seq).upper()
     seq_len = len(seq_str)
+    n_count = seq_str.count('N')
 
+    # Calculate real-time ambiguity percentage safely
+    current_n_pct = (n_count / seq_len) if seq_len > 0 else 0.0
+
+    # Quality threshold validation block
+    if qc_filters:
+        if current_n_pct > qc_filters["max_n_pct"]:
+            return None # Fails ambiguity percentage limit test
+        if seq_len < qc_filters["min_bp"] or seq_len > qc_filters["max_bp"]:
+            return None # Fails size range check
+    
     # Calcualte compostition statistics
-    n_count = seq_str.count('N') 
     g_count = seq_str.count('G')
     c_count = seq_str.count('C')
-    n_percentage = n_count / seq_len * 100 if seq_len > 0 else 0.0
     gc_percentage = ((g_count + c_count) / seq_len * 100) if seq_len > 0 else 0.0
+
+    n_pct_display = f"{(current_n_pct * 100):.2f}%"
 
     # Gather data mappings matching the exact labels inside your COLUMNS_MAP definitions
     data_source = {
@@ -77,7 +109,7 @@ def parse_header_metadata(record, chosen_columns):
         "Subtype": header_parts[4].strip().upper(),
         "Sequence_Length": str(seq_len),
         "Isolate_Name": header_parts[0].strip(),
-        "N_percentage": f"{n_percentage:.2g}%",
+        "N_percentage": f"{n_count} ({n_pct_display})",
         "GC_Content": f"{gc_percentage:.2f}%",
         "Sequence": seq_str  # Handles mapping the full string on demand
     }

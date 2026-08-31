@@ -6,7 +6,7 @@ from tkinter import filedialog
 # Import your modules from the analysis folder
 from Analysis.name_extracter import FASTANameExtractor
 from Analysis.sequence_sorter import InfluenzaSegmentSorter
-from Analysis.metadata_config import prompt_column_selection
+from Analysis.metadata_config import prompt_column_selection, prompt_qc_thresholds
 
 def get_project_paths():
     # Calculates all relative workspace locations dynamically
@@ -64,7 +64,7 @@ def run_name_extractor(default_input, default_output, chosen_columns):
         print(f"Opening {csv_output}")
         subprocess.call(["open", csv_output])
 
-def run_segment_sorter(default_input, default_output, chosen_columns):
+def run_segment_sorter(default_input, default_output, chosen_columns, qc_filters):
     # Handles user choices to extract all, one, or manually specified gene segments.
     print("\n" + "-"*40)
     print("🧬 GENE SEGMENT FILTER OPTIONS 🧬")
@@ -112,7 +112,7 @@ def run_segment_sorter(default_input, default_output, chosen_columns):
         return
 
     try: 
-        sorter = InfluenzaSegmentSorter(fasta_input, default_output, target_list, chosen_columns)
+        sorter = InfluenzaSegmentSorter(fasta_input, default_output, target_list, chosen_columns, qc_filters)
         sorter.sort_sequences()
 
         print(f"Opening output folder: {default_output}")
@@ -127,15 +127,25 @@ def main():
       # Query configuration settings ONCE upfront when program mounts
       chosen_columns = prompt_column_selection()
 
+      # No QC filtering active until the user explicitly configures thresholds
+      qc_filters = None
+
       while True:
         print("\n" + "="*40)
         print("🧬 SEQUENCE ALIGNMENT TOOLBOX 🧬")
         print("="*40)
         print(f"Active Columns: {', '.join(chosen_columns)}")
+        if qc_filters:
+             print(f"Active QC Filters: min={qc_filters['min_bp']}bp, "
+                   f"max={qc_filters['max_bp']}bp, "
+                   f"max_N={qc_filters['max_n_pct'] * 100:.1f}%")
+        else:
+             print("Active QC filters: None")
         print("1. Extract Sequence Names to CSV (Excel)")
         print("2. Sort / Filter Sequence Names (Next Task)")
         print("3. Change Global Column Layout Settings")
-        print("4. Exit Program")
+        print("4. Configure Quality Control (QC) Filters")
+        print("5. Exit Program")
         print("-"*40) 
 
         choice = input("Select an option (1-4): ").strip()
@@ -143,15 +153,18 @@ def main():
         if choice == "1":
               run_name_extractor(default_input, default_output, chosen_columns)
         elif choice == "2":
-              run_segment_sorter(default_input, default_output, chosen_columns)
+              run_segment_sorter(default_input, default_output, chosen_columns, qc_filters)
         elif choice == "3":
             # Reprompts column layout selections dynamically on request
             chosen_columns = prompt_column_selection()
         elif choice == "4":
+             # Reprompts QC threshold selections dynamically on request
+             qc_filters = prompt_qc_thresholds()
+        elif choice == "5":
             print("\nExiting program. Meow Meowwww")
             break
         else:
-            print("\nInvalid choice. Please pick a number from 1 to 4.")
+            print("\nInvalid choice. Please pick a number from 1 to 5.")
 
 if __name__ == "__main__":
     main()

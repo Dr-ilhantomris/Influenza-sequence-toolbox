@@ -7,10 +7,12 @@ class InfluenzaSegmentSorter:
     # defining strict source of truth 
     VALID_INFLUENZA_SEGMENTS = {"HA", "NA", "MP", "NS", "NP", "PA", "PB1", "PB2"}
 
-    def __init__(self, fasta_path, output_dir, target_segments, chosen_columns):
+    def __init__(self, fasta_path, output_dir, target_segments, chosen_columns, qc_filters=None):
         self.fasta_path = fasta_path
         self.output_dir = output_dir
         self.chosen_columns = chosen_columns
+        # Store QC threshold (min/max length, nax N%)
+        self.qc_filters = qc_filters
 
         # 1. Clean up user inputs
         cleaned_inputs = {seg.strip().upper() for seg in target_segments if seg.strip()}
@@ -41,6 +43,7 @@ class InfluenzaSegmentSorter:
 
         file_handles = {}
         counts = {}
+        skipped_qc = 0 # Track records dropped by QC thresholds
 
         try:
             # Initialize files and headers Only for the validated targets
@@ -67,10 +70,16 @@ class InfluenzaSegmentSorter:
                     if current_chunk in self.target_segments:
                         current_segment = current_chunk
 
+                        # Pass qc_filters through parse_header_metadata returns None if the
+                        # record fails the min/max length or N% ambiguity thresholds
+                        row_cells = parse_header_metadata(record, self.chosen_columns, self.qc_filters)
+
+                        if row_cells is None:
+                            skipped_qc += 1
+                            break # Record failed QC, skip writing, move to next record
+
+
                         counts[current_segment] += 1
-
-                        row_cells = parse_header_metadata(record, self.chosen_columns)
-
                         safe_row = [f'"{val}"' if not str(val).isdigit() else str(val) for val in row_cells]
                         
                         file_handles[current_segment].write(
@@ -80,6 +89,8 @@ class InfluenzaSegmentSorter:
                         break
 
             print(f"\nScan complete. Total sequences scanned: {total_scanned:,}")
+            if self.qc_filters:
+                print(f"Sequences dropped by QC filters: {skipped_qc}")
             print("📊 Extracted Row Breakdown:")
             for segment, cnt in counts.items():
                 print(f" - {segment}: {cnt:,} sequences saved")

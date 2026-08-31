@@ -1,8 +1,5 @@
-import os
-# import subprocess  
+import os  
 from Bio import SeqIO
-# import tkinter as tk
-# from tkinter import filedialog
 
 from Analysis.metadata_config import parse_header_metadata
 
@@ -38,74 +35,3 @@ class FASTANameExtractor:
 
         print(f"Success! Extracted {count:,} sequence names to: {self.output_csv_path}")
 
-# Direct execution
-'''
-if __name__ == "__main__":
-    # Initialize a hidden Tkinter root window
-    root = tk.Tk()
-    root.withdraw()
-
-    # Force the file picker windows to come to the front of your screen
-    root.wm_attributes('-topmost', 1)
-
-    # 0A. Get the folder where this script lives
-    current_dir = os.path.dirname(os.path.abspath(__file__))  
-    # 0B. Go up one level to get your project root directory
-    project_root = os.path.dirname(current_dir)
-
-    # Check if a 'data' folder exists inside the root; if so, default to it
-    default_input_dir = os.path.join(project_root, "data")
-    if not os.path.exists(default_input_dir):
-        default_input_dir = project_root
-
-    print("Please select your input FASTA file in the pop-up window...")
-
-    # 1. Open the native macOS Finder window to select the input FASTA file
-    fasta_input = filedialog.askopenfilename(
-        title="Select Input FASTA File",
-        initialdir=default_input_dir, # Defaults Finder directly to your project folder
-        filetypes=[("FASTA files", "*.fasta *.fa *.fna *.faa"), ("All files", "*.*")]
-    )
-
-    # If the user closes the window or hits cancel, stop execution safely
-    if not fasta_input:
-        print("Operation cancelled: No input file selected")
-
-    else:
-        print(f"Selected Input: {fasta_input}")
-        print("Please choose where to save the output CSV spreadsheet...")
-
-        # 2. Open the window to select the destination folder and name the output file
-        # We pre-fill the name as "{fasta_input}_output.csv"
-        
-        # 2A. strip the .fasta extension from the input path
-        file_base, ext = os.path.splitext(fasta_input)
-
-        # 2B. Extract just the filename to pre-fill the dialog box
-        suggested_filename = f"{os.path.basename(file_base)}_output.csv"
-
-        # Determine the default folder for saving the output
-        default_output_dir = os.path.join(project_root, "output")
-        if not os.path.exists(default_output_dir):
-            os.makedirs(default_output_dir)
-
-        # 2C Open the save window with your dynamic suggestion pre-filled
-        csv_output = filedialog.asksaveasfilename(
-            title="Save Sequence Names CSV As",
-            initialdir= default_output_dir, 
-            initialfile=suggested_filename, # Dynamically fills in based on input
-            defaultextension=".csv",
-            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
-        )
-
-        if not csv_output:
-            print("Operation cancelled: No output location selected")
-        else:
-            # Run the extractor directly
-            extractor = FASTANameExtractor(fasta_input, csv_output)
-            extractor.extract_names_to_csv()
-
-            # Automatically open the generated file using your macs default viewer
-            print(f"Opening {csv_output}")
-            subprocess.call(["open", csv_output])
-'''
